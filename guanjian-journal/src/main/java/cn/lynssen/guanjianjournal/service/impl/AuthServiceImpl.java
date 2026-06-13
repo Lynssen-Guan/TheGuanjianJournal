@@ -12,6 +12,7 @@ import cn.lynssen.guanjianjournal.service.AuthService;
 import cn.lynssen.guanjianjournal.vo.LoginVO;
 import cn.lynssen.guanjianjournal.vo.UserInfoVO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -27,6 +28,9 @@ public class AuthServiceImpl implements AuthService {
     @Autowired
     private AuthMapper authMapper;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @Override
     public void register(RegisterDTO registerDTO) {
         // 1. 根据用户名查找用户信息
@@ -38,7 +42,7 @@ public class AuthServiceImpl implements AuthService {
         // 3. 如果没找到直接返回则插入一条新数据
         UserDO insertDO = UserDO.builder()
                 .username(registerDTO.getUsername())
-                .password(registerDTO.getPassword())
+                .password(passwordEncoder.encode(registerDTO.getPassword()))
                 .nickname(registerDTO.getNickname())
                 .status(UserStatus.ENABLE.getCode())
                 .createdAt(LocalDateTime.now())
@@ -61,7 +65,7 @@ public class AuthServiceImpl implements AuthService {
         if (userDO == null || UserStatus.LOGIC_DELETE.getCode().equals(userDO.getDeleted())) {
             throw new BizException(ResultCode.USER_NOT_EXIST);
         }
-        if (!userDO.getPassword().equals(loginDTO.getPassword())) {
+        if (!passwordEncoder.matches(loginDTO.getPassword(), userDO.getPassword())) {
             throw new BizException(ResultCode.PASSWORD_ERROR);
         }
         UserInfoVO userInfoVO = UserInfoVO.builder()
