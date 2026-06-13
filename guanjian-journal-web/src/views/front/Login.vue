@@ -46,44 +46,50 @@
             <h3 id="login-title">登录你的账户</h3>
           </div>
 
-          <form class="login-form">
+          <form class="login-form" @submit.prevent="submitLogin">
             <label class="field">
-              <span>账号 / EMAIL</span>
+              <span>用户名 / USERNAME</span>
               <input
+                v-model="form.username"
                 type="text"
-                name="account"
-                placeholder="请输入账号或邮箱"
+                name="username"
+                placeholder="请输入用户名"
                 autocomplete="username"
+                :disabled="submitting"
               />
             </label>
 
             <label class="field">
               <span>密码 / PASSWORD</span>
               <input
+                v-model="form.password"
                 type="password"
                 name="password"
                 placeholder="请输入密码"
                 autocomplete="current-password"
+                :disabled="submitting"
               />
             </label>
 
             <div class="form-options">
               <label class="remember">
-                <input type="checkbox" name="remember" />
+                <input v-model="form.remember" type="checkbox" name="remember" />
                 <span>记住登录状态</span>
               </label>
               <span class="text-action">忘记密码？</span>
             </div>
 
-            <button type="button" class="submit-button">
-              <span>进入管见录</span>
+            <p v-if="message" class="form-message" role="alert">{{ message }}</p>
+
+            <button type="submit" class="submit-button" :disabled="submitting">
+              <span>{{ submitting ? '正在登录…' : '进入管见录' }}</span>
               <span aria-hidden="true">→</span>
             </button>
           </form>
 
           <div class="register-note">
             <span>还没有账户？</span>
-            <strong>申请加入</strong>
+            <button type="button" @click="goToRegister">申请加入</button>
           </div>
         </section>
       </main>
@@ -95,6 +101,74 @@
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { reactive, ref } from 'vue'
+import { saveAuth, type LoginData } from '../../utils/auth'
+
+interface LoginResponse {
+  code: number
+  data: LoginData | null
+  message?: string
+}
+
+const form = reactive({
+  username: '',
+  password: '',
+  remember: false
+})
+
+const submitting = ref(false)
+const message = ref('')
+
+const goToRegister = () => {
+  window.location.assign('/register')
+}
+
+const submitLogin = async () => {
+  const username = form.username.trim()
+
+  if (!username || !form.password.trim()) {
+    message.value = '请填写用户名和密码'
+    return
+  }
+
+  submitting.value = true
+  message.value = ''
+
+  try {
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        username,
+        password: form.password
+      })
+    })
+    const result = (await response.json()) as LoginResponse
+
+    if (result.code === 200 && result.data?.user) {
+      saveAuth(result.data, form.remember)
+      window.location.assign('/')
+      return
+    }
+
+    if (result.code === 40001) {
+      message.value = '该用户不存在，请检查用户名'
+    } else if (result.code === 40010) {
+      message.value = '密码错误，请重新输入'
+    } else {
+      message.value = result.message || '登录失败，请稍后重试'
+    }
+  } catch {
+    message.value = '登录失败，请检查网络或后端服务'
+  } finally {
+    submitting.value = false
+  }
+}
+</script>
 
 <style scoped>
 .login-shell {
@@ -389,6 +463,13 @@
   color: #a33d2d;
 }
 
+.form-message {
+  margin: -12px 0 18px;
+  color: #a33d2d;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .submit-button {
   display: flex;
   width: 100%;
@@ -398,9 +479,14 @@
   border: 1px solid #151515;
   background: #151515;
   color: #fff;
-  cursor: default;
+  cursor: pointer;
   font-size: 14px;
   letter-spacing: 0.08em;
+}
+
+.submit-button:disabled {
+  cursor: wait;
+  opacity: 0.68;
 }
 
 .submit-button span:last-child {
@@ -425,9 +511,13 @@
   font-size: 12px;
 }
 
-.register-note strong {
+.register-note button {
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: #a33d2d;
   font-weight: 500;
+  cursor: pointer;
 }
 
 .site-footer {

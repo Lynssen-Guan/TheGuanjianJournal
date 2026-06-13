@@ -5,6 +5,21 @@
         <div class="masthead__eyebrow">The Guanjian Journal</div>
         <h1>管见录</h1>
         <p>A modest record of code, books, and thoughts.</p>
+        <button
+          v-if="user"
+          type="button"
+          class="user-entry"
+          aria-label="查看个人资料"
+          @click="goToProfile"
+        >
+          <span class="user-entry__copy">
+            <strong>{{ displayName }}</strong>
+            <small>@{{ user.username }}</small>
+          </span>
+          <img v-if="user.avatar" :src="user.avatar" :alt="`${displayName}的头像`" />
+          <span v-else class="avatar-fallback">{{ avatarText }}</span>
+        </button>
+        <button v-else type="button" class="login-entry" @click="goToLogin">登录</button>
       </header>
 
       <nav class="site-nav" aria-label="主导航">
@@ -117,6 +132,22 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { getAuth, getAvatarText, getDisplayName } from '../../utils/auth'
+
+const auth = getAuth()
+const user = auth?.user ?? null
+const displayName = computed(() => user ? getDisplayName(user) : '')
+const avatarText = computed(() => user ? getAvatarText(user) : '')
+
+const goToProfile = () => {
+  window.location.assign('/profile')
+}
+
+const goToLogin = () => {
+  window.location.assign('/login')
+}
+
 interface Article {
   id: number
   slug: string
@@ -259,10 +290,69 @@ function formatIndex(index: number) {
 }
 
 .masthead {
+  position: relative;
   border-top: 4px solid #191919;
   border-bottom: 1px solid #191919;
   padding: 22px 0 18px;
   text-align: center;
+}
+
+.user-entry,
+.login-entry {
+  position: absolute;
+  top: 18px;
+  right: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif;
+}
+
+.user-entry {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0;
+  text-align: right;
+}
+
+.user-entry__copy {
+  display: grid;
+  gap: 2px;
+}
+
+.user-entry__copy strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.user-entry__copy small {
+  color: #888;
+  font-size: 11px;
+}
+
+.user-entry img,
+.avatar-fallback {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid #191919;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.avatar-fallback {
+  background: #a33d2d;
+  color: #fff;
+  font-size: 17px;
+}
+
+.login-entry {
+  padding: 8px 14px;
+  border: 1px solid #191919;
+  color: #151515;
+  font-size: 12px;
 }
 
 .masthead__eyebrow {
@@ -636,6 +726,16 @@ function formatIndex(index: number) {
   .masthead h1 {
     font-size: 36px;
     letter-spacing: 0.12em;
+  }
+
+  .user-entry__copy {
+    display: none;
+  }
+
+  .user-entry img,
+  .avatar-fallback {
+    width: 36px;
+    height: 36px;
   }
 
   .lead h2 {

@@ -18,6 +18,12 @@ public enum ResultCode {
     UNAUTHORIZED(401, "未登录或登录已过期"),
     FORBIDDEN(403, "无权限访问"),
     NOT_FOUND(404, "资源不存在"),
+
+    // 400xx 与用户相关
+    USER_EXIST(40000, "用户已存在"),
+    USER_NOT_EXIST(40001, "用户不存在"),
+
+    PASSWORD_ERROR(40010, "密码错误"),
     ;
 
     private final Integer code;
